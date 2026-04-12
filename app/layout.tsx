@@ -7,9 +7,11 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'HostelHub - Hostel Management System',
-  description: 'Modern admin dashboard for college hostel management - manage students, rooms, hostels, staff, and track in-out entries',
-  generator: 'v0.app',
+  title: 'PCCOE HMS - Hostel Management System',
+  description: 'Pimpri Chinchwad College of Engineering Hostel Management System - Modern admin dashboard for managing students, rooms, hostels, and academic facilities',
+  generator: 'Next.js',
+  keywords: ['PCCOE', 'Hostel Management', 'College', 'Students', 'Rooms', 'Administration'],
+  authors: [{ name: 'PCCOE IT Department' }],
   icons: {
     icon: [
       {

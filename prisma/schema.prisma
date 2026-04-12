@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  WARDEN
+  STUDENT
+}
+
+model User {
+  id          String      @id @default(uuid())
+  email       String      @unique
+  password    String
+  role        UserRole
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  student     Student?    @relation("UserStudent")
+  studentId   String?     @unique
+}
+
+model Hostel {
+  id             String           @id @default(uuid())
+  hostelName     String
+  location       String
+  capacity       Int
+  wardenName     String
+  contact        String
+  rooms          Room[]
+  students       Student[]
+  roomAllocations RoomAllocation[]
+  createdAt      DateTime         @default(now())
+}
+
+model Room {
+  id              String          @id @default(uuid())
+  roomId          String          @unique
+  hostel          Hostel          @relation(fields: [hostelId], references: [id])
+  hostelId        String
+  roomType        String
+  capacity        Int
+  currentOccupants Int            @default(0)
+  status          String          @default("VACANT")
+  allocations     RoomAllocation[]
+  students        Student[]
+}
+
+model Student {
+  id            String          @id @default(uuid())
+  studentId     String          @unique
+  user          User            @relation("UserStudent", fields: [userId], references: [id])
+  userId        String          @unique
+  name          String
+  email         String
+  phone         String
+  department    String
+  academicYear  Int
+  hostel        Hostel?         @relation(fields: [hostelId], references: [id])
+  hostelId      String?
+  room          Room?           @relation(fields: [roomId], references: [id])
+  roomId        String?
+  admissionDate DateTime        @default(now())
+  status        String          @default("ACTIVE")
+  allocations   RoomAllocation[]
+  payments      Payment[]
+  attendances   Attendance[]
+  leaveRequests LeaveRequest[]
+  complaints    Complaint[]
+}
+
+model RoomAllocation {
+  id         String   @id @default(uuid())
+  student    Student  @relation(fields: [studentId], references: [id])
+  studentId  String
+  room       Room     @relation(fields: [roomId], references: [id])
+  roomId     String
+  hostel     Hostel   @relation(fields: [hostelId], references: [id])
+  hostelId   String
+  startDate  DateTime @default(now())
+  endDate    DateTime?
+  status     String   @default("ACTIVE")
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  amount      Decimal
+  paymentDate DateTime @default(now())
+  paymentType String
+  status      String   @default("PENDING")
+  reference   String
+}
+
+model Attendance {
+  id             String   @id @default(uuid())
+  student        Student  @relation(fields: [studentId], references: [id])
+  studentId      String
+  attendanceDate DateTime
+  status         String
+  remarks        String?
+}
+
+model LeaveRequest {
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  status      String   @default("PENDING")
+  approvedBy  String?
+}
+
+model Complaint {
+  id          String   @id @default(uuid())
+  student     Student  @relation(fields: [studentId], references: [id])
+  studentId   String
+  title       String
+  description String
+  category    String
+  status      String   @default("OPEN")
+  resolution  String?
+  createdAt   DateTime @default(now())
+}

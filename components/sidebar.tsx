@@ -12,22 +12,48 @@ import {
   UserCog,
   Menu,
   X,
+  FileText,
+  CreditCard,
+  Calendar,
+  MessageSquare,
 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/rooms", label: "Rooms", icon: DoorOpen },
-  { href: "/hostels", label: "Hostels", icon: Building2 },
-  { href: "/in-out", label: "In-Out Entries", icon: ClipboardList },
-  { href: "/staff", label: "Staff", icon: UserCog },
+const adminNavItems = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/hostels", label: "Hostels", icon: Building2 },
+  { href: "/admin/rooms", label: "Rooms", icon: DoorOpen },
+  { href: "/admin/reports", label: "Reports", icon: FileText },
 ]
 
-export function Sidebar() {
+const wardenNavItems = [
+  { href: "/warden", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/warden/students", label: "Students", icon: Users },
+  { href: "/warden/allocations", label: "Allocations", icon: DoorOpen },
+  { href: "/warden/attendance", label: "Attendance", icon: Calendar },
+  { href: "/warden/leaves", label: "Leaves", icon: ClipboardList },
+  { href: "/warden/complaints", label: "Complaints", icon: MessageSquare },
+]
+
+const studentNavItems = [
+  { href: "/student", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/student/profile", label: "Profile", icon: Users },
+  { href: "/student/fees", label: "Fees", icon: CreditCard },
+  { href: "/student/attendance", label: "Attendance", icon: Calendar },
+  { href: "/student/complaints", label: "Complaints", icon: MessageSquare },
+]
+
+interface SidebarProps {
+  role: 'ADMIN' | 'WARDEN' | 'STUDENT'
+}
+
+export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navItems = role === 'ADMIN' ? adminNavItems : role === 'WARDEN' ? wardenNavItems : studentNavItems
 
   return (
     <>
@@ -58,13 +84,13 @@ export function Sidebar() {
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6 bg-gradient-to-r from-blue-900 to-blue-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white">
+              <Building2 className="h-5 w-5 text-blue-900" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-sidebar-foreground">HostelHub</h1>
-              <p className="text-xs text-muted-foreground">Management System</p>
+              <h1 className="text-lg font-bold text-white">PCCOE</h1>
+              <p className="text-xs text-blue-100">Hostel Management</p>
             </div>
           </div>
 
@@ -94,12 +120,12 @@ export function Sidebar() {
           {/* Footer */}
           <div className="border-t border-sidebar-border p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-medium">
-                AD
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-900 text-sm font-medium">
+                {role.charAt(0)}
               </div>
               <div>
-                <p className="text-sm font-medium text-sidebar-foreground">Admin User</p>
-                <p className="text-xs text-muted-foreground">admin@hostel.edu</p>
+                <p className="text-sm font-medium text-sidebar-foreground capitalize">{role.toLowerCase()} Portal</p>
+                <p className="text-xs text-muted-foreground">PCCOE HMS</p>
               </div>
             </div>
           </div>
