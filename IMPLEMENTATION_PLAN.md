@@ -1,27 +1,16 @@
 # Implementation Plan — Hostel Management System
 
-This phased implementation plan is designed for the current Next.js App Router project structure and MySQL-backed backend.
+This plan is built for a Next.js App Router application with MySQL as the backend. The design supports three portals with role-aware access: Admin, Warden, and Student.
 
-## Phase 1: Database Setup
+## Phase 1: Database and Role Modeling
 
-### 1. Choose ORM and initialize database support
+### Goal
+Create a MySQL schema that supports Admin, Warden, and Student access levels while preserving room, hostel, payment, attendance, leave, and complaint relationships.
 
-- Recommended: Prisma ORM. It provides typed models, migrations, and a strong developer experience.
-- Alternative: `mysql2` for raw SQL queries if you need minimal dependencies.
+### Recommended Approach
+Use Prisma ORM with a `UserRole` enum for explicit portal separation.
 
-### 2. Create MySQL schema and migration flow
-
-- Install Prisma dependencies:
-  - `pnpm add -D prisma`
-  - `pnpm add @prisma/client`
-- Initialize Prisma:
-  - `npx prisma init`
-- Add `.env` values:
-  - `DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/DATABASE"`
-
-### 3. Define core schema in `prisma/schema.prisma`
-
-Example model structure:
+### Prisma Schema
 
 ```prisma
 generator client {
@@ -35,62 +24,66 @@ datasource db {
 
 enum UserRole {
   ADMIN
+  WARDEN
   STUDENT
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  student   Student?
-}
-
-model Student {
-  id             String          @id @default(uuid())
-  user           User            @relation(fields: [userId], references: [id])
-  userId         String          @unique
-  studentNumber  String          @unique
-  name           String
-  phone          String
-  department     String
-  year           Int
-  hostel         Hostel?         @relation(fields: [hostelId], references: [id])
-  hostelId       String?
-  room           Room?           @relation(fields: [roomId], references: [id])
-  roomId         String?
-  admissionDate  DateTime        @default(now())
-  status         String          @default("ACTIVE")
-  allocations    RoomAllocation[]
-  payments       Payment[]
-  attendances    Attendance[]
-  leaveRequests  LeaveRequest[]
-  complaints     Complaint[]
+  id          String      @id @default(uuid())
+  email       String      @unique
+  password    String
+  role        UserRole
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  student     Student?    @relation(fields: [studentId], references: [id])
+  studentId   String?     @unique
 }
 
 model Hostel {
-  id         String          @id @default(uuid())
-  name       String          @unique
-  location   String
-  capacity   Int
-  wardenName String
-  contact    String
-  rooms      Room[]
-  students   Student[]
+  id          String      @id @default(uuid())
+  hostelName  String
+  location    String
+  capacity    Int
+  wardenName  String
+  contact     String
+  rooms       Room[]
+  students    Student[]
+  createdAt   DateTime    @default(now())
 }
 
 model Room {
-  id         String          @id @default(uuid())
-  hostel     Hostel          @relation(fields: [hostelId], references: [id])
-  hostelId   String
-  number     String
-  type       String
-  capacity   Int
-  occupants  Int             @default(0)
-  status     String          @default("VACANT")
-  allocations RoomAllocation[]
+  id              String          @id @default(uuid())
+  roomId          String          @unique
+  hostel          Hostel          @relation(fields: [hostelId], references: [id])
+  hostelId        String
+  roomType        String
+  capacity        Int
+  currentOccupants Int            @default(0)
+  status          String          @default("VACANT")
+  allocations     RoomAllocation[]
+}
+
+model Student {
+  id            String          @id @default(uuid())
+  studentId     String          @unique
+  user          User            @relation(fields: [userId], references: [id])
+  userId        String          @unique
+  name          String
+  email         String
+  phone         String
+  department    String
+  academicYear  Int
+  hostel        Hostel?         @relation(fields: [hostelId], references: [id])
+  hostelId      String?
+  room          Room?           @relation(fields: [roomId], references: [id])
+  roomId        String?
+  admissionDate DateTime        @default(now())
+  status        String          @default("ACTIVE")
+  allocations   RoomAllocation[]
+  payments      Payment[]
+  attendances   Attendance[]
+  leaveRequests LeaveRequest[]
+  complaints    Complaint[]
 }
 
 model RoomAllocation {
@@ -118,12 +111,12 @@ model Payment {
 }
 
 model Attendance {
-  id         String   @id @default(uuid())
-  student    Student  @relation(fields: [studentId], references: [id])
-  studentId  String
-  date       DateTime
-  status     String
-  remarks    String?
+  id             String   @id @default(uuid())
+  student        Student  @relation(fields: [studentId], references: [id])
+  studentId      String
+  attendanceDate DateTime
+  status         String
+  remarks        String?
 }
 
 model LeaveRequest {
@@ -150,114 +143,205 @@ model Complaint {
 }
 ```
 
-### 4. Run migrations and seed data
+### Using a Roles Table (Alternative)
 
-- `npx prisma migrate dev --name init`
-- Create seed data for Hostels, Rooms, and initial Admin user
+If you need dynamic roles, add a `Role` table alongside `User`:
 
-## Phase 2: Authorization & Backend APIs
+```prisma
+model Role {
+  id    String   @id @default(uuid())
+  name  String   @unique
+  users User[]
+}
 
-### 1. Authentication and authorization
-
-- Create `app/api/auth/login/route.ts` and `app/api/auth/register/route.ts`
-- Use `bcrypt` or `argon2` to hash passwords
-- Implement role-based session guards in middleware or route handlers
-- Create helper utilities in `lib/auth.ts`
-
-### 2. API route structure
-
-Use Next.js API Routes under `app/api` with route handlers for each module.
-
-```text
-app/api/
-  auth/
-    login/route.ts
-    register/route.ts
-  hostels/route.ts
-  rooms/route.ts
-  students/route.ts
-  payments/route.ts
-  attendance/route.ts
-  leaves/route.ts
-  complaints/route.ts
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+}
 ```
 
-### 3. CRUD operations per module
+### Phase 1 Tasks
 
-- `Hostels`: list, create, update, delete
-- `Rooms`: room inventory, status updates, occupancy counts
-- `Students`: register, update, profile lookup
-- `RoomAllocations`: assign rooms, release rooms, fetch student allocations
-- `Payments`: create payments, update statuses, list history
-- `Attendance`: record attendance, query by date range
-- `LeaveRequests`: submit leave, approve/reject, query by student
-- `Complaints`: submit complaint, update resolution status
+1. Install Prisma and initialize schema.
+2. Add tables for `User`, `Hostel`, `Room`, `Student`, `RoomAllocation`, `Payment`, `Attendance`, `LeaveRequest`, `Complaint`.
+3. Keep fields aligned with ER diagram naming conventions: `Room_ID`, `Student_ID`, `Hostel_Name`, `Warden_Name`, `AdmissionDate`, `PaymentDate`.
+4. Create initial seed data for one Admin, one Warden, one Hostel, and sample Rooms.
 
-### 4. Backend helpers
+## Phase 2: Auth Middleware and Role Redirects
 
-- Add `lib/prisma.ts` for a singleton Prisma client
-- Add `lib/utils.ts` for shared validation and response handling
-- Add `lib/auth.ts` for role checks and session logic
+### Goal
+Ensure every authenticated user lands in the correct portal and cannot access a different role's pages.
 
-## Phase 3: Frontend UI
+### Middleware Design
 
-### 1. Layout and navigation
+1. Create `middleware.ts` at the project root.
+2. Use `NextResponse.next()` for authenticated requests.
+3. Read session or JWT token to determine `user.role`.
+4. Redirect based on role:
+   - `ADMIN` → `/admin`
+   - `WARDEN` → `/warden`
+   - `STUDENT` → `/student`
 
-- Use `app/layout.tsx` and `app/(dashboard)/layout.tsx` for shared layout and nested dashboard routes
-- Build a `components/sidebar.tsx` with navigation links for Admin and Student views
-- Add global theme support with `components/theme-provider.tsx`
+### Example Redirect Logic
 
-### 2. Dashboard pages
+```ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { verifyAuthToken } from './lib/auth';
 
-Create pages for the core modules:
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get('token')?.value;
+  const url = request.nextUrl.clone();
 
-```text
-app/(dashboard)/page.tsx
-app/(dashboard)/hostels/page.tsx
-app/(dashboard)/rooms/page.tsx
-app/(dashboard)/students/page.tsx
-app/(dashboard)/staff/page.tsx
-app/(dashboard)/in-out/page.tsx
+  if (!token) {
+    if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/warden') || url.pathname.startsWith('/student')) {
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
+  const payload = await verifyAuthToken(token);
+  if (!payload) {
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  if (url.pathname === '/login' || url.pathname === '/') {
+    switch (payload.role) {
+      case 'ADMIN':
+        url.pathname = '/admin';
+        break;
+      case 'WARDEN':
+        url.pathname = '/warden';
+        break;
+      case 'STUDENT':
+        url.pathname = '/student';
+        break;
+    }
+    return NextResponse.redirect(url);
+  }
+
+  if (payload.role === 'ADMIN' && url.pathname.startsWith('/warden')) {
+    url.pathname = '/admin';
+    return NextResponse.redirect(url);
+  }
+  if (payload.role === 'WARDEN' && url.pathname.startsWith('/admin')) {
+    url.pathname = '/warden';
+    return NextResponse.redirect(url);
+  }
+  if (payload.role === 'STUDENT' && (url.pathname.startsWith('/admin') || url.pathname.startsWith('/warden'))) {
+    url.pathname = '/student';
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
+}
 ```
 
-### 3. Data-driven UI components
+### Middleware Matcher
 
-- `components/ui/table.tsx` for tabular lists of rooms, students, payments, complaints
-- `components/ui/form.tsx` and `components/ui/input.tsx` for registration and allocation forms
-- `components/ui/dialog.tsx` and `components/ui/toast.tsx` for confirmations and notifications
+```ts
+export const config = {
+  matcher: ['/admin/:path*', '/warden/:path*', '/student/:path*', '/api/:path*'],
+};
+```
 
-### 4. Page-level feature flows
+### API Guarding
 
-- Students page: registration form, search, profile details
-- Rooms page: room inventory, vacancy status, allocation actions
-- Hostels page: hostel details, capacities, warden assignments
-- Staff page: dashboard metrics and management shortcuts
-- In/Out page: attendance and leave tracking, check-in/check-out flows
+- Use role checks inside `app/api/*` route handlers.
+- Example: only allow `/api/hostels` for `ADMIN` and `WARDEN`.
+- Return `403` when role does not match.
 
-### 5. Responsive UI
+## Phase 3: UI/UX with Role-Specific Layouts
 
-- Use Tailwind CSS utility classes and `components/ui` primitives
-- Ensure mobile-friendly navigation and data tables
-- Use `lucide-react` icons for actions, status badges, and page headers
+### Goal
+Build three distinct, isolated layouts so users only see pages and navigation relevant to their role.
 
-## Phase 4: Integration and Delivery
+### Folder Structure
 
-### 1. Connect UI to backend
+```text
+app/
+  admin/
+    layout.tsx
+    page.tsx
+    hostels/page.tsx
+    rooms/page.tsx
+    users/page.tsx
+    reports/page.tsx
+  warden/
+    layout.tsx
+    page.tsx
+    students/page.tsx
+    allocations/page.tsx
+    attendance/page.tsx
+    leaves/page.tsx
+    complaints/page.tsx
+  student/
+    layout.tsx
+    page.tsx
+    profile/page.tsx
+    fees/page.tsx
+    attendance/page.tsx
+    complaints/page.tsx
+```
 
-- Fetch data from `app/api/*` endpoints using `fetch` inside server components or client components
-- Use form submission handlers and `react-hook-form` for validation
-- Display loading and error states consistently
+### Layout Responsibilities
 
-### 2. Protect routes and guard access
+- `app/admin/layout.tsx`: admin sidebar, global header, admin-only breadcrumbs and page wrappers.
+- `app/warden/layout.tsx`: warden-specific menu, quick actions for room allocation and leave approvals.
+- `app/student/layout.tsx`: student dashboard view, personal summary, profile and fee status.
 
-- Use role-based logic to show/hide admin workflows
-- Add auth checks for API routes and page components
+### Navigation Strategy
 
-### 3. Testing and validation
+- Each layout loads a distinct sidebar component or route list.
+- Do not render Admin nav items in Warden layout.
+- Do not render Warden or Admin nav links in Student layout.
+- Use role-specific header badges to show `Admin`, `Warden`, or `Student`.
 
-- Validate API endpoints using Postman or Insomnia
-- Test flows for student registration, room assignment, payments, and complaints
-- Validate MySQL foreign keys and relation integrity
+### UX Requirements
+
+- Admin portal includes system settings, users, hostels, rooms and reports.
+- Warden portal focuses on student roster, room allocation, attendance, leave approvals, and complaints.
+- Student portal presents current room, hostel, fees, attendance summary, and complaint submission.
+
+### Example Component Flow
+
+- `components/sidebar.tsx` receives `role` and renders a filtered nav list.
+- `components/layout-switcher.tsx` can help users switch context during development, but hidden in production.
+
+## Phase 4: Integration and Validation
+
+### Goal
+Connect the frontend and backend and verify portal behavior.
+
+### Tasks
+
+1. Implement login with role detection.
+2. Protect pages using layout guards and middleware.
+3. Fetch data from role-appropriate API routes.
+4. Build forms for room allocation, fees, attendance and complaint submission.
+5. Validate access by testing each portal with users from each role.
+
+### Deliverables
+
+- `Admin` dashboard with user, hostel, and room controls
+- `Warden` workspace for student management, allocations, attendance and leave approvals
+- `Student` workspace for profile, room details, fee status, and complaints
+- Secure role-aware API routes and middleware redirects
+- MySQL schema matching ER diagram fields such as `Room_ID`, `Student_ID`, `Hostel_Name`, `Warden_Name`, and `PaymentDate`
+
+## Additional Notes
+
+- Use Prisma migration history to manage schema changes.
+- Keep `lib/prisma.ts` as the shared Prisma client instance.
+- Keep `lib/auth.ts` for token creation, verification and role helper functions.
+- Use `app/api/auth/login/route.ts` to return role and redirect location after successful login.
+- Use server-side and client-side checks together to prevent unauthorized navigation.
+
 
 ### 4. Production readiness
 
