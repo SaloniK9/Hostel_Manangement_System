@@ -1,7 +1,60 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, DoorOpen, Calendar, MessageSquare } from 'lucide-react'
+import { Users, DoorOpen, Calendar, MessageSquare, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function WardenDashboard() {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    activeAllocations: 0,
+    presentRate: '0%',
+    pendingComplaints: 0
+  })
+  const [recentLeaves, setRecentLeaves] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      const [studentsRes, leavesRes, complaintsRes] = await Promise.all([
+        fetch('/api/students'),
+        fetch('/api/leaves'),
+        fetch('/api/complaints')
+      ])
+
+      const students = await studentsRes.json()
+      const leaves = await leavesRes.json()
+      const complaints = await complaintsRes.json()
+
+      setStats({
+        totalStudents: students.length || 0,
+        activeAllocations: students.filter((s: any) => s.status === 'ACTIVE').length || 0,
+        presentRate: '100%', // Placeholder for now
+        pendingComplaints: complaints.filter((c: any) => c.status === 'OPEN').length || 0
+      })
+
+      setRecentLeaves(leaves.slice(0, 3) || [])
+    } catch (error) {
+      toast.error('Could not load dashboard data')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -16,7 +69,7 @@ export default function WardenDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">342</div>
+            <div className="text-2xl font-bold">{stats.totalStudents}</div>
             <p className="text-xs text-muted-foreground">In hostel</p>
           </CardContent>
         </Card>
@@ -27,7 +80,7 @@ export default function WardenDashboard() {
             <DoorOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
+            <div className="text-2xl font-bold">{stats.activeAllocations}</div>
             <p className="text-xs text-muted-foreground">Active allocations</p>
           </CardContent>
         </Card>
@@ -38,7 +91,7 @@ export default function WardenDashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89%</div>
+            <div className="text-2xl font-bold">{stats.presentRate}</div>
             <p className="text-xs text-muted-foreground">Present rate</p>
           </CardContent>
         </Card>
@@ -49,7 +102,7 @@ export default function WardenDashboard() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.pendingComplaints}</div>
             <p className="text-xs text-muted-foreground">Require attention</p>
           </CardContent>
         </Card>
@@ -63,27 +116,24 @@ export default function WardenDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">Medical leave - 3 days</p>
-                </div>
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Jane Smith</p>
-                  <p className="text-xs text-muted-foreground">Family emergency - 2 days</p>
-                </div>
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pending</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Bob Johnson</p>
-                  <p className="text-xs text-muted-foreground">Personal reasons - 1 day</p>
-                </div>
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Approved</span>
-              </div>
+              {recentLeaves.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No recent leave requests.</p>
+              ) : (
+                recentLeaves.map((leave: any) => (
+                  <div key={leave.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">{leave.student?.name}</p>
+                      <p className="text-xs text-muted-foreground">{leave.reason} - {new Date(leave.startDate).toLocaleDateString()}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      leave.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
+                      leave.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {leave.status}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -96,30 +146,17 @@ export default function WardenDashboard() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Boys Hostel A</span>
-                <span className="text-sm font-medium">85% occupied</span>
+                <span className="text-sm">General Occupancy</span>
+                <span className="text-sm font-medium">Monitoring...</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '0%' }}></div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Girls Hostel B</span>
-                <span className="text-sm font-medium">92% occupied</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">International Hostel</span>
-                <span className="text-sm font-medium">67% occupied</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full" style={{ width: '67%' }}></div>
-              </div>
+              <p className="text-xs text-muted-foreground italic">Hostel-specific occupancy metrics will populate once more data is available.</p>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
   )
-}
+}

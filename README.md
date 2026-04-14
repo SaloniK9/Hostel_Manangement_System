@@ -1,317 +1,115 @@
-# Hostel Management System
+# Hostel Management System (HMS)
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.1.6-black)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-v4-teal)
-![Prisma](https://img.shields.io/badge/Prisma-4.20.0-lightgrey)
+![Prisma](https://img.shields.io/badge/Prisma-7.7.0-lightgrey)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7.3-blue)
 
-## Overview
+## Project Overview
 
-Hostel Management System (HMS) is a multi-portal web application built with Next.js App Router, MySQL, and Prisma. It is purpose-built to support Admin, Warden, and Student portals with clearly separated access, workflows, and dashboards.
+The **Hostel Management System (HMS)** is a comprehensive, multi-portal web application designed to streamline the operations of educational residential facilities. Built with **Next.js App Router**, **Prisma ORM**, and **MySQL**, it provides a secure, role-aware environment for administrators, wardens, and students to manage everything from room allocations to fee payments and attendance.
 
-## Role-Based Portals
+## Key Features & User Roles
 
-- **Admin Portal**: full system control, user management, hostel configuration, reporting, and global settings.
-- **Warden Portal**: student admission, room allocation, attendance management, leave approvals, and complaint management.
-- **Student Portal**: personal profile, room & hostel details, fee status, attendance view, and complaint submission.
+### 🔑 Admin Portal
+- **System Configuration**: Manage hostels, blocks, and global settings.
+- **User Management**: Add and manage system users (Wardens, Admins).
+- **Global Reporting**: View system-wide occupancy, payment reports, and analytics.
 
-## Feature Comparison
+### 🏠 Warden Portal
+- **Student Management**: Register students and manage their profiles.
+- **Room Allocation**: Assign and transfer students between rooms.
+- **Operations**: Manage attendance records, approve leave requests, and resolve student complaints.
 
-| Feature | Admin | Warden | Student |
-|---|:---:|:---:|:---:|
-| Manage users and roles | ✅ | ❌ | ❌ |
-| Configure hostels | ✅ | ✅ | ❌ |
-| Manage rooms and allocation | ✅ | ✅ | ❌ |
-| View student profiles | ✅ | ✅ | ✅ |
-| Track attendance | ✅ | ✅ | ✅ |
-| Approve leaves | ✅ | ✅ | ❌ |
-| Submit leave requests | ✅ | ✅ | ✅ |
-| Record payments | ✅ | ✅ | ✅ |
-| File complaints | ✅ | ✅ | ✅ |
-| View dashboards | ✅ | ✅ | ✅ |
+### 🎓 Student Portal
+- **Dashboard**: View current hostel and room details.
+- **Financials**: Track fee payments and history.
+- **Requests**: Submit leave requests and file complaints.
+- **Attendance**: Monitor personal attendance records.
 
 ## Tech Stack
 
-- Frontend: Next.js App Router, React, Tailwind CSS, Lucide React
-- Backend: Next.js API Routes (Node.js)
-- Database: MySQL
-- ORM: Prisma
-- Validation: Zod, React Hook Form
-- UI: Radix UI primitives and custom Tailwind components
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
+- **Database**: [MySQL](https://www.mysql.com/)
+- **ORM**: [Prisma](https://www.prisma.io/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Authentication**: Custom JWT with Middleware-based routing
+- **UI Components**: [Radix UI](https://www.radix-ui.com/) & [Lucide Icons](https://lucide.dev/)
+- **Validation**: [Zod](https://zod.dev/)
 
-## Installation
+## Architecture
 
-1. Clone the repository
+The project follows a clean, tiered architecture to ensure separation of concerns and maintainability:
 
-```bash
-git clone <your-repo-url> hms
-cd hms
-```
+1. **Frontend**: React Server Components (RSC) and Client Components using Next.js portals.
+2. **API Routes**: Handle HTTP requests, authentication, and validation (`app/api/`).
+3. **Service Layer**: Encapsulates all business logic and database interactions (`lib/services/`).
+4. **Data Access**: Prisma Client for structured database operations (`prisma/`).
 
-2. Install dependencies
-
-```bash
-pnpm install
-```
-
-3. Create `.env`
-
-```env
-DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/DATABASE"
-NEXTAUTH_URL=http://localhost:3000
-```
-
-4. Install Prisma and generate client
-
-```bash
-pnpm add -D prisma
-pnpm add @prisma/client
-npx prisma init
-```
-
-5. Run migrations
-
-```bash
-npx prisma migrate dev --name init
-```
-
-6. Start development
-
-```bash
-pnpm dev
-```
-
-## Project Directory Structure
+## Folder Structure
 
 ```text
 app/
-  layout.tsx
-  page.tsx
-  login/page.tsx
-  admin/
-    layout.tsx
-    page.tsx
-    hostels/page.tsx
-    rooms/page.tsx
-    users/page.tsx
-    reports/page.tsx
-  warden/
-    layout.tsx
-    page.tsx
-    students/page.tsx
-    allocations/page.tsx
-    attendance/page.tsx
-    leaves/page.tsx
-    complaints/page.tsx
-  student/
-    layout.tsx
-    page.tsx
-    profile/page.tsx
-    fees/page.tsx
-    attendance/page.tsx
-    complaints/page.tsx
-  api/
-    auth/
-      login/route.ts
-      register/route.ts
-    users/route.ts
-    hostels/route.ts
-    rooms/route.ts
-    allocations/route.ts
-    payments/route.ts
-    attendance/route.ts
-    leaves/route.ts
-    complaints/route.ts
+  (portals)/       # Role-specific page groups (admin, warden, student)
+  api/             # Backend API endpoints
+  login/           # Authentication pages
 components/
-  header.tsx
-  sidebar.tsx
-  theme-provider.tsx
-  ui/
-    button.tsx
-    card.tsx
-    form.tsx
-    input.tsx
-    table.tsx
-    badge.tsx
-    dialog.tsx
-    toast.tsx
+  ui/              # Reusable UI primitives (Button, Card, etc.)
+  shared/          # Common components across portals
 lib/
-  prisma.ts
-  auth.ts
-  middleware.ts
-  utils.ts
+  services/        # Business logic & DB operations (Service Layer)
+  auth.ts          # Auth utilities
+  prisma.ts        # Prisma client instance
+  middleware.ts    # Role-based route protection
 prisma/
-  schema.prisma
-  migrations/
-hooks/
-  use-toast.ts
-  use-mobile.ts
+  schema.prisma    # Database schema
+  seed.ts          # Seed data for initial users and hostels
 ```
 
-## Database Schema
+## Setup Instructions
 
-This schema is aligned with the ER diagram and supports relationships between Students, Rooms, Hostels, Payments, Attendance, Leave Requests, and Complaints.
+### Prerequisites
+- Node.js (v18+)
+- MySQL Server 8.0+
 
-### Prisma Schema
+### Installation
 
-```prisma
-generator client {
-  provider = "prisma-client-js"
-}
+1. **Clone and Install**:
+   ```bash
+   git clone <repo-url>
+   cd hms
+   npm install
+   ```
 
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-}
+2. **Configure Environment**:
+   Create a `.env` file in the root directory:
+   ```env
+   DATABASE_URL="mysql://root:YOUR_PASSWORD@localhost:3306/hms"
+   JWT_SECRET="your-secure-secret-key"
+   ```
 
-enum UserRole {
-  ADMIN
-  WARDEN
-  STUDENT
-}
+3. **Initialize Database**:
+   ```bash
+   npx prisma db push
+   npx prisma db seed
+   ```
 
-model User {
-  id          String    @id @default(uuid())
-  email       String    @unique
-  password    String
-  role        UserRole
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  student     Student?  @relation(fields: [studentId], references: [id])
-  studentId   String?   @unique
-}
+4. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-model Hostel {
-  id          String    @id @default(uuid())
-  hostelName  String
-  location    String
-  capacity    Int
-  wardenName  String
-  contact     String
-  rooms       Room[]
-  students    Student[]
-  createdAt   DateTime  @default(now())
-}
+## API Overview
 
-model Room {
-  id               String           @id @default(uuid())
-  roomId           String           @unique
-  hostel           Hostel           @relation(fields: [hostelId], references: [id])
-  hostelId         String
-  roomType         String
-  capacity         Int
-  currentOccupants Int              @default(0)
-  status           String           @default("VACANT")
-  allocations      RoomAllocation[]
-}
+| Endpoint | Method | Role | Description |
+| :--- | :--- | :--- | :--- |
+| `/api/auth/login` | POST | Public | Authenticates user and sets cookie |
+| `/api/hostels` | GET/POST | Admin/Warden | Manage hostel facilities |
+| `/api/rooms` | GET/POST | Admin/Warden | Manage room inventory |
+| `/api/students` | GET/POST | Warden | Register and view students |
+| `/api/payments` | GET/POST | Student/Warden | Fee tracking |
+| `/api/attendance` | GET/POST | Warden | Attendance management |
+| `/api/leaves` | GET/POST | Student/Warden | Leave request workflow |
 
-model Student {
-  id            String          @id @default(uuid())
-  studentId     String          @unique
-  user          User            @relation(fields: [userId], references: [id])
-  userId        String          @unique
-  name          String
-  email         String
-  phone         String
-  department    String
-  academicYear  Int
-  hostel        Hostel?         @relation(fields: [hostelId], references: [id])
-  hostelId      String?
-  room          Room?           @relation(fields: [roomId], references: [id])
-  roomId        String?
-  admissionDate DateTime        @default(now())
-  status        String          @default("ACTIVE")
-  allocations   RoomAllocation[]
-  payments      Payment[]
-  attendances   Attendance[]
-  leaveRequests LeaveRequest[]
-  complaints    Complaint[]
-}
-
-model RoomAllocation {
-  id         String   @id @default(uuid())
-  student    Student  @relation(fields: [studentId], references: [id])
-  studentId  String
-  room       Room     @relation(fields: [roomId], references: [id])
-  roomId     String
-  hostel     Hostel   @relation(fields: [hostelId], references: [id])
-  hostelId   String
-  startDate  DateTime @default(now())
-  endDate    DateTime?
-  status     String   @default("ACTIVE")
-}
-
-model Payment {
-  id          String   @id @default(uuid())
-  student     Student  @relation(fields: [studentId], references: [id])
-  studentId   String
-  amount      Decimal
-  paymentDate DateTime @default(now())
-  paymentType String
-  status      String   @default("PENDING")
-  reference   String
-}
-
-model Attendance {
-  id             String   @id @default(uuid())
-  student        Student  @relation(fields: [studentId], references: [id])
-  studentId      String
-  attendanceDate DateTime
-  status         String
-  remarks        String?
-}
-
-model LeaveRequest {
-  id          String   @id @default(uuid())
-  student     Student  @relation(fields: [studentId], references: [id])
-  studentId   String
-  startDate   DateTime
-  endDate     DateTime
-  reason      String
-  status      String   @default("PENDING")
-  approvedBy  String?
-}
-
-model Complaint {
-  id          String   @id @default(uuid())
-  student     Student  @relation(fields: [studentId], references: [id])
-  studentId   String
-  title       String
-  description String
-  category    String
-  status      String   @default("OPEN")
-  resolution  String?
-  createdAt   DateTime @default(now())
-}
-```
-
-## Authentication Strategy
-
-- Use role-based login and session/token storage.
-- Redirect users after login to their portal:
-  - Admin → `/admin`
-  - Warden → `/warden`
-  - Student → `/student`
-- Protect API routes using role checks.
-- Use `bcrypt` or `argon2` to hash credentials.
-
-## Usage
-
-- `pnpm dev` — start development
-- `pnpm build` — build for production
-- `pnpm start` — start production server
-- `pnpm lint` — run lint checks
-
-## Notes
-
-- Use separate layouts to ensure Warden and Student portals do not show Admin-only navigation.
-- Keep `lib/prisma.ts` and `lib/auth.ts` as centralized backend helpers.
-- Use role-specific route groups for a clean App Router architecture.
-
-## Notes
-
-- Keep UI and API routes separated under `app/`.
-- Use `lib/prisma.ts` for Prisma client instantiation.
-- Use a central `components/ui` folder for reusable UI elements.
-- For production, use environment variables and secure your database credentials.
+---
+*Developed with performance and security as core principles.*

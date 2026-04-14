@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Search, X } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Search, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,20 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-const initialStudents = [
-  { prn: "PRN001", name: "Rahul Sharma", branch: "Computer Science", year: "3rd", phone: "9876543210", roomNo: "A-101", hostelId: "H001" },
-  { prn: "PRN002", name: "Priya Patel", branch: "Electronics", year: "2nd", phone: "9876543211", roomNo: "B-205", hostelId: "H002" },
-  { prn: "PRN003", name: "Amit Kumar", branch: "Mechanical", year: "4th", phone: "9876543212", roomNo: "A-302", hostelId: "H001" },
-  { prn: "PRN004", name: "Sneha Gupta", branch: "Civil", year: "1st", phone: "9876543213", roomNo: "C-102", hostelId: "H003" },
-  { prn: "PRN005", name: "Vikram Singh", branch: "Computer Science", year: "2nd", phone: "9876543214", roomNo: "A-103", hostelId: "H001" },
-  { prn: "PRN006", name: "Ananya Reddy", branch: "IT", year: "3rd", phone: "9876543215", roomNo: "B-301", hostelId: "H002" },
-  { prn: "PRN007", name: "Karan Mehta", branch: "Electronics", year: "4th", phone: "9876543216", roomNo: "D-201", hostelId: "H004" },
-  { prn: "PRN008", name: "Neha Joshi", branch: "Computer Science", year: "1st", phone: "9876543217", roomNo: "C-105", hostelId: "H003" },
-]
+import { toast } from "sonner"
 
 export default function StudentsPage() {
-  const [students, setStudents] = useState(initialStudents)
+  const [students, setStudents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
@@ -55,36 +46,84 @@ export default function StudentsPage() {
     hostelId: "",
   })
 
+  useEffect(() => {
+    fetchStudents()
+  }, [])
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch('/api/students')
+      if (!response.ok) throw new Error('Failed to fetch students')
+      const data = await response.json()
+      setStudents(data)
+    } catch (error) {
+      toast.error('Could not load students')
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const filteredStudents = students.filter(
     (student) =>
-      student.name.toLowerCase().includes(search.toLowerCase()) ||
-      student.prn.toLowerCase().includes(search.toLowerCase()) ||
-      student.branch.toLowerCase().includes(search.toLowerCase())
+      student.name?.toLowerCase().includes(search.toLowerCase()) ||
+      student.prn?.toLowerCase().includes(search.toLowerCase()) ||
+      student.department?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const newStudent = {
-      prn: formData.prn,
-      name: formData.name,
-      branch: formData.branch,
-      year: formData.year,
-      phone: formData.phone,
-      roomNo: formData.roomId,
-      hostelId: formData.hostelId,
+    try {
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentData: {
+            prn: formData.prn,
+            name: formData.name,
+            department: formData.branch,
+            academicYear: parseInt(formData.year.replace(/\D/g, '')) || 1,
+            phoneNumber: formData.phone,
+            room: { connect: { id: formData.roomId } }, // This might need roomId lookup
+            hostel: { connect: { id: formData.hostelId } },
+          },
+          userData: {
+            email: `${formData.prn.toLowerCase()}@hms.student.com`,
+            password: 'student123',
+            role: 'STUDENT'
+          }
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Failed to add student')
+      }
+
+      toast.success('Student added successfully')
+      fetchStudents()
+      setFormData({
+        prn: "",
+        name: "",
+        branch: "",
+        year: "",
+        city: "",
+        phone: "",
+        roomId: "",
+        hostelId: "",
+      })
+      setDialogOpen(false)
+    } catch (error: any) {
+      toast.error(error.message)
     }
-    setStudents([...students, newStudent])
-    setFormData({
-      prn: "",
-      name: "",
-      branch: "",
-      year: "",
-      city: "",
-      phone: "",
-      roomId: "",
-      hostelId: "",
-    })
-    setDialogOpen(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
   }
 
   return (
@@ -176,17 +215,6 @@ export default function StudentsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Enter city"
-                    value={formData.city}
-                    onChange={(e) =>
-                      setFormData({ ...formData, city: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
@@ -203,32 +231,23 @@ export default function StudentsPage() {
                     <Label htmlFor="roomId">Room ID</Label>
                     <Input
                       id="roomId"
-                      placeholder="e.g., A-101"
+                      placeholder="Enter Room Slug (A-101)"
                       value={formData.roomId}
                       onChange={(e) =>
                         setFormData({ ...formData, roomId: e.target.value })
                       }
-                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="hostelId">Hostel ID</Label>
-                    <Select
+                    <Input
+                      id="hostelId"
+                      placeholder="Enter Hostel ID"
                       value={formData.hostelId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, hostelId: value })
+                      onChange={(e) =>
+                        setFormData({ ...formData, hostelId: e.target.value })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="H001">H001</SelectItem>
-                        <SelectItem value="H002">H002</SelectItem>
-                        <SelectItem value="H003">H003</SelectItem>
-                        <SelectItem value="H004">H004</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    />
                   </div>
                 </div>
               </div>
@@ -279,37 +298,45 @@ export default function StudentsPage() {
                   <TableHead className="text-muted-foreground">Year</TableHead>
                   <TableHead className="text-muted-foreground">Phone</TableHead>
                   <TableHead className="text-muted-foreground">Room No.</TableHead>
-                  <TableHead className="text-muted-foreground">Hostel ID</TableHead>
+                  <TableHead className="text-muted-foreground">Hostel</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.prn} className="border-border">
-                    <TableCell className="font-medium text-foreground">
-                      {student.prn}
-                    </TableCell>
-                    <TableCell className="text-foreground">{student.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {student.branch}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {student.year}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {student.phone}
-                    </TableCell>
-                    <TableCell>
-                      <span className="rounded bg-secondary px-2 py-1 text-xs text-secondary-foreground">
-                        {student.roomNo}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">
-                        {student.hostelId}
-                      </span>
+                {filteredStudents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No students found.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredStudents.map((student) => (
+                    <TableRow key={student.prn} className="border-border">
+                      <TableCell className="font-medium text-foreground">
+                        {student.prn}
+                      </TableCell>
+                      <TableCell className="text-foreground">{student.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {student.department}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {student.academicYear}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {student.phoneNumber}
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded bg-secondary px-2 py-1 text-xs text-secondary-foreground">
+                          {student.room?.roomId || 'N/A'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="rounded bg-primary/10 px-2 py-1 text-xs text-primary">
+                          {student.hostel?.hostelName || 'N/A'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
