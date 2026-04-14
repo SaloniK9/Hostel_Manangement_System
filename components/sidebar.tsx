@@ -46,10 +46,10 @@ const studentNavItems = [
 ]
 
 interface SidebarProps {
-  role: 'ADMIN' | 'WARDEN' | 'STUDENT'
+  role?: 'ADMIN' | 'WARDEN' | 'STUDENT'
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role = 'STUDENT' }: SidebarProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 

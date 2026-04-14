@@ -2,7 +2,14 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { UserRole } from '@prisma/client'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+const JWT_SECRET = process.env.JWT_SECRET
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET must be defined in production environment')
+}
+
+const SECRET_KEY = JWT_SECRET || 'dev-secret-key-do-not-use-in-production'
+
 
 export interface AuthTokenPayload {
   id: string
@@ -19,12 +26,12 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 }
 
 export function createToken(payload: AuthTokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, SECRET_KEY, { expiresIn: '7d' })
 }
 
 export function verifyToken(token: string): AuthTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthTokenPayload
+    return jwt.verify(token, SECRET_KEY) as AuthTokenPayload
   } catch {
     return null
   }
