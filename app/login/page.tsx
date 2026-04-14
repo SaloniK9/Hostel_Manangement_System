@@ -35,7 +35,7 @@ export default function LoginPage() {
       if (response.ok) {
         router.push(data.redirectTo)
       } else {
-        setError(data.error || 'Login failed')
+        setError(data.message || data.error || 'Login failed')
       }
     } catch (err) {
       setError('An error occurred. Please try again.')

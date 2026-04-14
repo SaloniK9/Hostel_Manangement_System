@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
         { 
           success: false, 
           message: 'Validation failed', 
+          error: 'Validation failed',
           errors: validation.error.errors.map(e => e.message) 
         }, 
         { status: 400 }
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { 
             success: false, 
-            message: 'Database connection failed. Please try again later.' 
+            message: 'Database connection failed. Please try again later.',
+            error: 'Database connection failed'
           }, 
           { status: 503 }
         )
@@ -58,7 +60,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       console.log(`[LOGIN_FAILED][${requestId}] User not found`, { email })
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password' }, 
+        { success: false, message: 'Invalid email or password', error: 'Invalid email or password' }, 
         { status: 401 }
       )
     }
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
     if (!isValidPassword) {
       console.log(`[LOGIN_FAILED][${requestId}] Invalid password`, { email })
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password' }, 
+        { success: false, message: 'Invalid email or password', error: 'Invalid email or password' }, 
         { status: 401 }
       )
     }
@@ -109,7 +111,8 @@ export async function POST(request: NextRequest) {
       { 
         success: false, 
         message: 'An internal server error occurred',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },
       { status: 500 }
     )
